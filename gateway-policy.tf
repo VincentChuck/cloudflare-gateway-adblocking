@@ -15,10 +15,9 @@ locals {
   # Parse the file and create a list, one item per line
   pihole_domain_list = split("\n", file(local.pihole_domain_list_file))
 
-  # Remove empty lines
-  # pihole_domain_list_clean = [for x in local.pihole_domain_list : x if x != ""]
-  pihole_domain_list_clean = [for x in local.pihole_domain_list : x if x != "" && !startswith(x, "#")]
-
+  # Remove empty lines, comments and lines with localhost
+  pihole_domain_list_nonempty = [for x in local.pihole_domain_list : x if x != "" && !startswith(x, "#") && !can(regex("^.*localhost.*$", x))]
+  pihole_domain_list_clean = [for x in local.pihole_domain_list_nonempty : trimprefix(x, "127.0.0.1 ")]
 
   # Use chunklist to split a list into fixed-size chunks
   # It returns a list of lists
@@ -41,3 +40,38 @@ resource "cloudflare_teams_list" "pihole_domain_lists" {
   type  = "DOMAIN"
   items = each.value
 }
+
+# ==============================================================================
+# POLICY: Block Ads
+# ==============================================================================
+locals {
+  # Iterate through each pihole_domain_list resource and extract its ID
+  pihole_domain_lists = [for k, v in cloudflare_teams_list.pihole_domain_lists : v.id]
+
+  # Format the values: remove dashes and prepend $
+  pihole_domain_lists_formatted = [for v in local.pihole_domain_lists : format("$%s", replace(v, "-", ""))]
+
+  # Create filters to use in the policy
+  pihole_ad_filters = formatlist("any(dns.domains[*] in %s)", local.pihole_domain_lists_formatted)
+  pihole_ad_filter  = join(" or ", local.pihole_ad_filters)
+}
+
+resource "cloudflare_teams_rule" "block_ads" {
+  account_id = local.cloudflare_account_id
+
+  name        = "Block Ads"
+  description = "Block Ads domains"
+
+  enabled    = true
+  precedence = 11
+
+  # Block domain belonging to lists (defined below)
+  filters = ["dns"]
+  action  = "block"
+  traffic = local.pihole_ad_filter
+
+  rule_settings {
+    block_page_enabled = false
+  }
+}
+

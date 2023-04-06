@@ -6,5 +6,5 @@ This is my experiment to implement a cross-platform ad-blocker with a customizab
 
 It is a terraform module that configures Cloudflare Gateway to block ads by creating:
 
-    - A set of Cloudflare Lists which contain the list of domains to block
-    - A Cloudflare Gateway Policy which blocks access (at the DNS level) to those domains
+- A set of Cloudflare Lists which contain the list of domains to block
+- A Cloudflare Gateway Policy which blocks access (at the DNS level) to those domains
