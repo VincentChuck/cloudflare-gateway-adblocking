@@ -6,7 +6,7 @@ on:
     - cron: "0 10 15 * *" # At 10:00 on day-of-month 15
 
 env:
-  FOLDER: "cloudflare/lists" 
+  FOLDER: "cloudflare/lists"
 
 jobs:
   auto-update:
@@ -52,7 +52,7 @@ jobs:
       # Commit file
       #
       - name: ↗️ Create Pull Request
-        uses: peter-evans/create-pull-request@v4
+        uses: peter-evans/create-pull-request@v5.0.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           title: "Update Domain List"
